@@ -19,65 +19,68 @@ interface ResultsSectionProps {
 }
 
 const ResultsSection = ({ results, successRate, finalMedian, initialAmount, withdrawalAmount }: ResultsSectionProps) => {
-  const formatCurrency = (value: number) => `${Math.round(value)} 萬`;
+  const formatCurrency = (value: number) => `${Math.round(value)}萬`;
   
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Success Rate Card */}
-      <Card className="bg-card border-border p-6">
-        <h2 className="text-xl font-bold text-primary mb-4">模擬結果</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center p-4 bg-background rounded-lg">
-            <div className="text-3xl font-bold text-primary mb-1">{successRate.toFixed(1)}%</div>
-            <div className="text-sm text-muted-foreground">成功率</div>
+      <Card className="bg-card border-border p-4">
+        <h2 className="text-lg font-bold text-primary mb-3">模擬結果</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="text-center p-3 bg-background rounded-lg">
+            <div className="text-2xl font-bold text-primary">{successRate.toFixed(1)}%</div>
+            <div className="text-xs text-muted-foreground mt-1">成功率</div>
           </div>
-          <div className="text-center p-4 bg-background rounded-lg">
-            <div className="text-3xl font-bold text-primary mb-1">{formatCurrency(finalMedian)}</div>
-            <div className="text-sm text-muted-foreground">中位數餘額</div>
+          <div className="text-center p-3 bg-background rounded-lg">
+            <div className="text-2xl font-bold text-primary">{formatCurrency(finalMedian)}</div>
+            <div className="text-xs text-muted-foreground mt-1">最終餘額</div>
           </div>
-          <div className="text-center p-4 bg-background rounded-lg">
-            <div className="text-2xl font-bold text-foreground mb-1">{formatCurrency(initialAmount)}</div>
-            <div className="text-sm text-muted-foreground">初始資金</div>
+          <div className="text-center p-3 bg-background rounded-lg">
+            <div className="text-xl font-bold text-foreground">{formatCurrency(initialAmount)}</div>
+            <div className="text-xs text-muted-foreground mt-1">初始</div>
           </div>
-          <div className="text-center p-4 bg-background rounded-lg">
-            <div className="text-2xl font-bold text-foreground mb-1">{formatCurrency(withdrawalAmount)}</div>
-            <div className="text-sm text-muted-foreground">年度提領</div>
+          <div className="text-center p-3 bg-background rounded-lg">
+            <div className="text-xl font-bold text-foreground">{formatCurrency(withdrawalAmount)}</div>
+            <div className="text-xs text-muted-foreground mt-1">年提領</div>
           </div>
         </div>
       </Card>
 
       {/* Chart */}
-      <Card className="bg-card border-border p-6">
-        <h3 className="text-lg font-bold text-foreground mb-4">資產變化趨勢</h3>
-        <div className="h-[300px]">
+      <Card className="bg-card border-border p-4">
+        <h3 className="text-base font-bold text-foreground mb-3">資產變化</h3>
+        <div className="h-[250px] -mx-2">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={results}>
+            <AreaChart data={results} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
               <defs>
                 <linearGradient id="colorRange" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
                   <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.05}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis 
                 dataKey="year" 
                 stroke="hsl(var(--muted-foreground))"
-                label={{ value: '年數', position: 'insideBottom', offset: -5, fill: 'hsl(var(--muted-foreground))' }}
+                tick={{ fontSize: 11 }}
+                tickLine={false}
               />
               <YAxis 
                 stroke="hsl(var(--muted-foreground))"
                 tickFormatter={formatCurrency}
-                label={{ value: '資產 (萬)', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
+                tick={{ fontSize: 11 }}
+                tickLine={false}
               />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: 'hsl(var(--popover))', 
                   border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  color: 'hsl(var(--popover-foreground))'
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  padding: '8px'
                 }}
                 formatter={(value: number) => [formatCurrency(value), '']}
-                labelFormatter={(label) => `第 ${label} 年`}
+                labelFormatter={(label) => `${label}年`}
               />
               <Area 
                 type="monotone" 
@@ -97,7 +100,7 @@ const ResultsSection = ({ results, successRate, finalMedian, initialAmount, with
                 type="monotone" 
                 dataKey="median" 
                 stroke="hsl(var(--primary))" 
-                strokeWidth={3}
+                strokeWidth={2}
                 dot={false}
               />
               <Area 
@@ -117,27 +120,27 @@ const ResultsSection = ({ results, successRate, finalMedian, initialAmount, with
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-4 text-xs text-muted-foreground text-center">
-          陰影區域顯示10%-90%百分位範圍，金線為中位數
+        <div className="mt-2 text-xs text-muted-foreground text-center">
+          金線=中位數 陰影=10%-90%區間
         </div>
       </Card>
 
       {/* Analysis */}
-      <Card className="bg-card border-border p-6">
-        <h3 className="text-lg font-bold text-foreground mb-3">分析建議</h3>
-        <div className="space-y-2 text-sm text-muted-foreground">
+      <Card className="bg-card border-border p-4">
+        <h3 className="text-base font-bold text-foreground mb-2">分析</h3>
+        <div className="space-y-1.5 text-sm">
           {successRate >= 90 ? (
-            <p className="text-primary">✓ 您的退休計劃成功率很高，資金充足度良好</p>
+            <p className="text-primary">✓ 成功率高，資金充足</p>
           ) : successRate >= 75 ? (
-            <p className="text-foreground">⚠ 成功率尚可，建議考慮降低提領率或增加初始資金</p>
+            <p className="text-foreground">⚠ 建議降低提領率</p>
           ) : (
-            <p className="text-destructive">✗ 成功率偏低，強烈建議調整參數以提高成功率</p>
+            <p className="text-destructive">✗ 成功率偏低，需調整參數</p>
           )}
           {finalMedian > initialAmount * 0.5 && (
-            <p>• 預期在退休期結束時仍保有可觀資產</p>
+            <p className="text-muted-foreground">• 退休期末仍有資產</p>
           )}
           {finalMedian < initialAmount * 0.2 && (
-            <p>• 資產消耗較快，可考慮降低年度提領率</p>
+            <p className="text-muted-foreground">• 資產消耗較快</p>
           )}
         </div>
       </Card>
