@@ -79,13 +79,23 @@ const ResultsSection = ({ results, successRate, finalMedian, initialAmount, with
                 tick={{ fontSize: 11 }}
                 tickLine={false}
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--popover))', 
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--popover))',
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '6px',
                   fontSize: '12px',
-                  padding: '8px'
+                  padding: '8px',
+                  color: 'hsl(var(--popover-foreground))'
+                }}
+                labelStyle={{
+                  color: 'hsl(var(--popover-foreground))',
+                  fontWeight: 'bold',
+                  marginBottom: '4px'
+                }}
+                itemStyle={{
+                  color: 'hsl(var(--popover-foreground))',
+                  padding: '2px 0'
                 }}
                 formatter={(value: number, name: string) => {
                   const labels: Record<string, string> = {
