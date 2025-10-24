@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, AlertCircle, CheckCircle2 } from "lucide-react";
 import ResultsSection from "@/components/ResultsSection";
 import { useToast } from "@/hooks/use-toast";
+import { marketDataService, sampleHistoricalReturn, type HistoricalReturn } from "@/services/marketData";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Index = () => {
   const [simulationYears, setSimulationYears] = useState([30]);
@@ -15,13 +17,71 @@ const Index = () => {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [simulationResults, setSimulationResults] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [dataSource, setDataSource] = useState<'historical' | 'simulated'>('historical');
+  const [historicalData, setHistoricalData] = useState<HistoricalReturn[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [dataLoadError, setDataLoadError] = useState<string | null>(null);
+  const [portfolio, setPortfolio] = useState<'balanced' | 'aggressive' | 'conservative'>('balanced');
   const { toast } = useToast();
+
+  // 載入歷史數據
+  useEffect(() => {
+    if (dataSource === 'historical' && historicalData.length === 0) {
+      loadHistoricalData();
+    }
+  }, [dataSource]);
+
+  const loadHistoricalData = async () => {
+    setIsLoadingData(true);
+    setDataLoadError(null);
+
+    try {
+      const data = await marketDataService.getHistoricalReturns();
+      setHistoricalData(data);
+
+      toast({
+        title: "數據載入成功",
+        description: `已載入 ${data.length} 年的歷史市場數據`,
+      });
+    } catch (error) {
+      console.error('載入歷史數據失敗:', error);
+      setDataLoadError('無法載入線上數據，將使用備用歷史統計數據');
+
+      // 使用備用數據
+      const fallbackData = marketDataService['getFallbackHistoricalReturns']();
+      setHistoricalData(fallbackData);
+
+      toast({
+        title: "使用備用數據",
+        description: "將使用基於1928-2024年統計的模擬數據",
+        variant: "default",
+      });
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  // 獲取投資組合權重
+  const getPortfolioWeights = () => {
+    switch (portfolio) {
+      case 'aggressive':
+        return { stock: 0.8, bond: 0.2 };
+      case 'conservative':
+        return { stock: 0.2, bond: 0.8 };
+      default: // balanced
+        return { stock: 0.5, bond: 0.5 };
+    }
+  };
 
   const runSimulation = () => {
     setIsCalculating(true);
+    const useHistorical = dataSource === 'historical' && historicalData.length > 0;
+
     toast({
       title: "開始計算",
-      description: "正在進行蒙地卡羅模擬...",
+      description: useHistorical
+        ? "使用真實歷史數據進行蒙地卡羅模擬..."
+        : "使用模擬數據進行蒙地卡羅模擬...",
     });
 
     // Simulate calculation delay
@@ -30,8 +90,9 @@ const Index = () => {
       const initialAmount = retirementFund[0];
       const rate = withdrawalRate[0] / 100;
       const withdrawalAmount = initialAmount * rate;
+      const weights = getPortfolioWeights();
 
-      // Simple Monte Carlo simulation
+      // Monte Carlo simulation
       const numSimulations = 1000;
       const results: number[][] = [];
 
@@ -40,10 +101,20 @@ const Index = () => {
         let balance = initialAmount;
 
         for (let year = 1; year <= years; year++) {
-          // Random return: 7% average with 15% std dev
-          const returnRate = (Math.random() - 0.5) * 0.3 + 0.07;
-          const inflation = 0.03; // 3% inflation
-          
+          let returnRate: number;
+          let inflation: number;
+
+          if (useHistorical) {
+            // 使用真實歷史數據取樣
+            const sample = sampleHistoricalReturn(historicalData, weights.stock, weights.bond);
+            returnRate = sample.portfolioReturn;
+            inflation = sample.inflation;
+          } else {
+            // 使用簡化的隨機模擬
+            returnRate = (Math.random() - 0.5) * 0.3 + 0.07;
+            inflation = 0.03;
+          }
+
           balance = balance * (1 + returnRate) - withdrawalAmount * Math.pow(1 + inflation, year - 1);
           yearlyBalances.push(Math.max(0, balance));
         }
@@ -74,12 +145,13 @@ const Index = () => {
         finalMedian: chartData[years].median,
         initialAmount,
         withdrawalAmount,
+        dataSource: useHistorical ? 'historical' : 'simulated',
       });
 
       setIsCalculating(false);
       toast({
         title: "計算完成",
-        description: `成功率: ${successRate.toFixed(1)}%`,
+        description: `成功率: ${successRate.toFixed(1)}% ${useHistorical ? '(使用真實歷史數據)' : '(使用模擬數據)'}`,
       });
 
       // Scroll to results
@@ -109,24 +181,50 @@ const Index = () => {
           <h1 className="text-2xl font-bold text-primary mb-1">參數設定</h1>
         </div>
 
+        {/* Data Source Status Alert */}
+        {dataSource === 'historical' && (
+          <Alert className={dataLoadError ? "border-yellow-500" : "border-green-500"}>
+            {dataLoadError ? (
+              <AlertCircle className="h-4 w-4 text-yellow-500" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            )}
+            <AlertTitle>
+              {isLoadingData ? "載入中..." : dataLoadError ? "使用備用數據" : "真實歷史數據"}
+            </AlertTitle>
+            <AlertDescription>
+              {isLoadingData
+                ? "正在從 API 載入真實市場數據..."
+                : dataLoadError
+                ? dataLoadError
+                : `已載入 ${historicalData.length} 年的真實市場數據 (${historicalData[historicalData.length - 1]?.year || 1928}-${historicalData[0]?.year || 2024})`}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Basic Settings */}
         <div className="space-y-6">
           <div>
             <h2 className="text-xl font-bold text-primary mb-4">基本設定</h2>
-            
+
             <div className="space-y-6">
               {/* Data Source */}
               <div className="space-y-2">
                 <label className="text-sm text-foreground">數據來源</label>
-                <Select defaultValue="historical">
+                <Select value={dataSource} onValueChange={(value: 'historical' | 'simulated') => setDataSource(value)}>
                   <SelectTrigger className="w-full bg-card border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
-                    <SelectItem value="historical">年度資料庫(1928-2024)</SelectItem>
-                    <SelectItem value="monthly">月度資料庫(2000-2024)</SelectItem>
+                    <SelectItem value="historical">真實歷史數據 (1928-2024)</SelectItem>
+                    <SelectItem value="simulated">簡化模擬數據</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {dataSource === 'historical'
+                    ? "使用 S&P 500 和 10年期公債的真實歷史回報率"
+                    : "使用統計分佈生成的模擬數據"}
+                </p>
               </div>
 
               {/* Simulation Years */}
@@ -166,7 +264,7 @@ const Index = () => {
           {/* Investment Portfolio */}
           <div className="space-y-2">
             <label className="text-sm text-foreground">投資組合</label>
-            <Select defaultValue="balanced">
+            <Select value={portfolio} onValueChange={(value: 'balanced' | 'aggressive' | 'conservative') => setPortfolio(value)}>
               <SelectTrigger className="w-full bg-card border-border">
                 <SelectValue />
               </SelectTrigger>
