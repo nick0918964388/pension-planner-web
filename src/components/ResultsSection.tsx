@@ -79,8 +79,17 @@ const ResultsSection = ({ results, successRate, finalMedian, initialAmount, with
                   fontSize: '12px',
                   padding: '8px'
                 }}
-                formatter={(value: number) => [formatCurrency(value), '']}
-                labelFormatter={(label) => `${label}年`}
+                formatter={(value: number, name: string) => {
+                  const labels: Record<string, string> = {
+                    median: '中位數',
+                    percentile90: '90%',
+                    percentile75: '75%',
+                    percentile25: '25%',
+                    percentile10: '10%'
+                  };
+                  return [formatCurrency(value), labels[name] || name];
+                }}
+                labelFormatter={(label) => `第 ${label} 年`}
               />
               <Area 
                 type="monotone" 
