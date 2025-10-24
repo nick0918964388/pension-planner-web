@@ -5,12 +5,89 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
+import ResultsSection from "@/components/ResultsSection";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [simulationYears, setSimulationYears] = useState([30]);
   const [retirementFund, setRetirementFund] = useState([1000]);
   const [withdrawalRate, setWithdrawalRate] = useState([4.0]);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [simulationResults, setSimulationResults] = useState<any>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const { toast } = useToast();
+
+  const runSimulation = () => {
+    setIsCalculating(true);
+    toast({
+      title: "開始計算",
+      description: "正在進行蒙地卡羅模擬...",
+    });
+
+    // Simulate calculation delay
+    setTimeout(() => {
+      const years = simulationYears[0];
+      const initialAmount = retirementFund[0];
+      const rate = withdrawalRate[0] / 100;
+      const withdrawalAmount = initialAmount * rate;
+
+      // Simple Monte Carlo simulation
+      const numSimulations = 1000;
+      const results: number[][] = [];
+
+      for (let sim = 0; sim < numSimulations; sim++) {
+        const yearlyBalances = [initialAmount];
+        let balance = initialAmount;
+
+        for (let year = 1; year <= years; year++) {
+          // Random return: 7% average with 15% std dev
+          const returnRate = (Math.random() - 0.5) * 0.3 + 0.07;
+          const inflation = 0.03; // 3% inflation
+          
+          balance = balance * (1 + returnRate) - withdrawalAmount * Math.pow(1 + inflation, year - 1);
+          yearlyBalances.push(Math.max(0, balance));
+        }
+        results.push(yearlyBalances);
+      }
+
+      // Calculate percentiles for each year
+      const chartData = [];
+      for (let year = 0; year <= years; year++) {
+        const yearBalances = results.map(sim => sim[year]).sort((a, b) => a - b);
+        chartData.push({
+          year,
+          median: yearBalances[Math.floor(numSimulations * 0.5)],
+          percentile25: yearBalances[Math.floor(numSimulations * 0.25)],
+          percentile75: yearBalances[Math.floor(numSimulations * 0.75)],
+          percentile10: yearBalances[Math.floor(numSimulations * 0.1)],
+          percentile90: yearBalances[Math.floor(numSimulations * 0.9)],
+        });
+      }
+
+      // Calculate success rate (balance > 0 at end)
+      const successCount = results.filter(sim => sim[years] > 0).length;
+      const successRate = (successCount / numSimulations) * 100;
+
+      setSimulationResults({
+        results: chartData,
+        successRate,
+        finalMedian: chartData[years].median,
+        initialAmount,
+        withdrawalAmount,
+      });
+
+      setIsCalculating(false);
+      toast({
+        title: "計算完成",
+        description: `成功率: ${successRate.toFixed(1)}%`,
+      });
+
+      // Scroll to results
+      setTimeout(() => {
+        document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }, 800);
+  };
 
   const formatCurrency = (value: number) => {
     return `${value} 萬`;
@@ -220,9 +297,18 @@ const Index = () => {
         {/* Calculate Button */}
         <Button 
           className="w-full h-14 text-lg font-bold bg-primary hover:bg-gold-dark text-primary-foreground"
+          onClick={runSimulation}
+          disabled={isCalculating}
         >
-          開始計算
+          {isCalculating ? "計算中..." : "開始計算"}
         </Button>
+
+        {/* Results Section */}
+        {simulationResults && (
+          <div id="results">
+            <ResultsSection {...simulationResults} />
+          </div>
+        )}
       </div>
     </div>
   );
