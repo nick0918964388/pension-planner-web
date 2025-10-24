@@ -16,16 +16,24 @@ interface ResultsSectionProps {
   finalMedian: number;
   initialAmount: number;
   withdrawalAmount: number;
+  dataSource?: 'historical' | 'simulated';
 }
 
-const ResultsSection = ({ results, successRate, finalMedian, initialAmount, withdrawalAmount }: ResultsSectionProps) => {
+const ResultsSection = ({ results, successRate, finalMedian, initialAmount, withdrawalAmount, dataSource }: ResultsSectionProps) => {
   const formatCurrency = (value: number) => `${Math.round(value)}萬`;
-  
+
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Success Rate Card */}
       <Card className="bg-card border-border p-4">
-        <h2 className="text-lg font-bold text-primary mb-3">模擬結果</h2>
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-lg font-bold text-primary">模擬結果</h2>
+          {dataSource && (
+            <span className="text-xs px-2 py-1 rounded bg-primary/10 text-primary">
+              {dataSource === 'historical' ? '真實數據' : '模擬數據'}
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="text-center p-3 bg-background rounded-lg">
             <div className="text-2xl font-bold text-primary">{successRate.toFixed(1)}%</div>
