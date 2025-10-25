@@ -5,6 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, AlertCircle, CheckCircle2 } from "lucide-react";
+import Navigation from "@/components/Navigation";
 import ResultsSection from "@/components/ResultsSection";
 import CalculationDetails from "@/components/CalculationDetails";
 import { useToast } from "@/hooks/use-toast";
@@ -215,8 +216,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-20 space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-primary mb-1">參數設定</h1>
