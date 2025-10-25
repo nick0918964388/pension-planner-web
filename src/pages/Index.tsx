@@ -41,20 +41,16 @@ const Index = () => {
 
       toast({
         title: "數據載入成功",
-        description: `已載入 ${data.length} 年的歷史市場數據`,
+        description: `已載入 ${data.length} 年的真實歷史市場數據 (${data[data.length - 1]?.year}-${data[0]?.year})`,
       });
     } catch (error) {
       console.error('載入歷史數據失敗:', error);
-      setDataLoadError('無法載入線上數據，將使用備用歷史統計數據');
-
-      // 使用備用數據
-      const fallbackData = marketDataService['getFallbackHistoricalReturns']();
-      setHistoricalData(fallbackData);
+      setDataLoadError('數據載入失敗');
 
       toast({
-        title: "使用備用數據",
-        description: "將使用基於1928-2024年統計的模擬數據",
-        variant: "default",
+        title: "載入失敗",
+        description: "無法載入歷史數據，請重新整理頁面",
+        variant: "destructive",
       });
     } finally {
       setIsLoadingData(false);
@@ -183,21 +179,23 @@ const Index = () => {
 
         {/* Data Source Status Alert */}
         {dataSource === 'historical' && (
-          <Alert className={dataLoadError ? "border-yellow-500" : "border-green-500"}>
+          <Alert className={dataLoadError ? "border-red-500" : isLoadingData ? "border-blue-500" : "border-green-500"}>
             {dataLoadError ? (
-              <AlertCircle className="h-4 w-4 text-yellow-500" />
+              <AlertCircle className="h-4 w-4 text-red-500" />
+            ) : isLoadingData ? (
+              <AlertCircle className="h-4 w-4 text-blue-500" />
             ) : (
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             )}
             <AlertTitle>
-              {isLoadingData ? "載入中..." : dataLoadError ? "使用備用數據" : "真實歷史數據"}
+              {isLoadingData ? "載入中..." : dataLoadError ? "載入失敗" : "✓ 真實歷史數據"}
             </AlertTitle>
             <AlertDescription>
               {isLoadingData
-                ? "正在從 API 載入真實市場數據..."
+                ? "正在載入真實市場數據..."
                 : dataLoadError
                 ? dataLoadError
-                : `已載入 ${historicalData.length} 年的真實市場數據 (${historicalData[historicalData.length - 1]?.year || 1928}-${historicalData[0]?.year || 2024})`}
+                : `已載入 ${historicalData.length} 年的真實 S&P 500 和 10年期公債數據 (${historicalData[historicalData.length - 1]?.year || 1928}-${historicalData[0]?.year || 2024})`}
             </AlertDescription>
           </Alert>
         )}
