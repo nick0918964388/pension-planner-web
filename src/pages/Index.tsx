@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, AlertCircle, CheckCircle2 } from "lucide-react";
 import ResultsSection from "@/components/ResultsSection";
+import CalculationDetails from "@/components/CalculationDetails";
 import { useToast } from "@/hooks/use-toast";
 import { marketDataService, sampleHistoricalReturn, type HistoricalReturn } from "@/services/marketData";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -135,6 +136,46 @@ const Index = () => {
       const successCount = results.filter(sim => sim[years] > 0).length;
       const successRate = (successCount / numSimulations) * 100;
 
+      // 生成中位數情境的計算明細
+      const yearlyDetails = [];
+      let balance = initialAmount;
+      let cumulativeInflation = 1;
+
+      for (let year = 1; year <= years; year++) {
+        const startBalance = balance;
+
+        let returnRate: number;
+        let inflation: number;
+
+        if (useHistorical) {
+          const sample = sampleHistoricalReturn(historicalData, weights.stock, weights.bond);
+          returnRate = sample.portfolioReturn;
+          inflation = sample.inflation;
+        } else {
+          returnRate = (Math.random() - 0.5) * 0.3 + 0.07;
+          inflation = 0.03;
+        }
+
+        const returnAmount = balance * returnRate;
+        cumulativeInflation *= (1 + inflation);
+        const adjustedWithdrawal = withdrawalAmount * cumulativeInflation;
+
+        balance = balance + returnAmount - adjustedWithdrawal;
+        const endBalance = Math.max(0, balance);
+
+        yearlyDetails.push({
+          year,
+          startBalance,
+          returnRate,
+          returnAmount,
+          withdrawalAmount: adjustedWithdrawal,
+          inflation,
+          endBalance
+        });
+
+        balance = endBalance;
+      }
+
       setSimulationResults({
         results: chartData,
         successRate,
@@ -142,6 +183,10 @@ const Index = () => {
         initialAmount,
         withdrawalAmount,
         dataSource: useHistorical ? 'historical' : 'simulated',
+        yearlyDetails,
+        simulationYears: years,
+        withdrawalRate: rate * 100,
+        portfolio,
       });
 
       setIsCalculating(false);
@@ -401,8 +446,18 @@ const Index = () => {
 
         {/* Results Section */}
         {simulationResults && (
-          <div id="results">
+          <div id="results" className="space-y-4">
             <ResultsSection {...simulationResults} />
+            {simulationResults.yearlyDetails && (
+              <CalculationDetails
+                initialAmount={simulationResults.initialAmount}
+                withdrawalRate={simulationResults.withdrawalRate}
+                simulationYears={simulationResults.simulationYears}
+                portfolio={simulationResults.portfolio}
+                dataSource={simulationResults.dataSource}
+                yearlyDetails={simulationResults.yearlyDetails}
+              />
+            )}
           </div>
         )}
       </div>
