@@ -22,7 +22,23 @@ const ReverseCalculator = () => {
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [yearRangePreset, setYearRangePreset] = useState<string>('all');
   const { toast } = useToast();
+
+  // 年份範圍預設選項
+  const yearRangePresets = {
+    all: { startYear: 1928, endYear: 2024, label: '全部數據 (1928-2024)' },
+    postwar: { startYear: 1945, endYear: 2024, label: '戰後時期 (1945-2024)' },
+    modern: { startYear: 1980, endYear: 2024, label: '現代時期 (1980-2024)' },
+    recent30: { startYear: 1994, endYear: 2024, label: '最近30年 (1994-2024)' },
+    recent20: { startYear: 2004, endYear: 2024, label: '最近20年 (2004-2024)' },
+    century21: { startYear: 2000, endYear: 2024, label: '21世紀 (2000-2024)' },
+  };
+
+  // 獲取當前使用的年份範圍
+  const getActiveYearRange = () => {
+    return yearRangePresets[yearRangePreset as keyof typeof yearRangePresets];
+  };
 
   // 載入歷史數據
   useEffect(() => {
@@ -86,7 +102,8 @@ const ReverseCalculator = () => {
         let inflation: number;
 
         if (useHistorical) {
-          const sample = sampleHistoricalReturn(historicalData, weights.stock, weights.bond);
+          const yearRange = getActiveYearRange();
+          const sample = sampleHistoricalReturn(historicalData, weights.stock, weights.bond, yearRange);
           returnRate = sample.portfolioReturn;
           inflation = sample.inflation;
         } else {
@@ -306,6 +323,29 @@ const ReverseCalculator = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Year Range Selection - Only show for historical data */}
+          {dataSource === 'historical' && (
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground">歷史數據年份範圍</Label>
+              <Select value={yearRangePreset} onValueChange={setYearRangePreset}>
+                <SelectTrigger className="w-full bg-card border-border text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem value="all">{yearRangePresets.all.label}</SelectItem>
+                  <SelectItem value="postwar">{yearRangePresets.postwar.label}</SelectItem>
+                  <SelectItem value="modern">{yearRangePresets.modern.label}</SelectItem>
+                  <SelectItem value="recent30">{yearRangePresets.recent30.label}</SelectItem>
+                  <SelectItem value="recent20">{yearRangePresets.recent20.label}</SelectItem>
+                  <SelectItem value="century21">{yearRangePresets.century21.label}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                選擇要使用的歷史數據區間，可排除特定時期（如大蕭條）
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Calculate Button */}

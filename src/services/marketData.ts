@@ -77,14 +77,32 @@ export const marketDataService = new MarketDataService();
 
 /**
  * 使用歷史數據進行蒙地卡羅模擬的取樣函數
+ * @param historicalData 完整的歷史數據
+ * @param stockWeight 股票權重
+ * @param bondWeight 債券權重
+ * @param yearRange 可選的年份範圍 {startYear, endYear}
  */
 export function sampleHistoricalReturn(
   historicalData: HistoricalReturn[],
   stockWeight: number,
-  bondWeight: number
+  bondWeight: number,
+  yearRange?: { startYear: number; endYear: number }
 ): { portfolioReturn: number; inflation: number } {
+  // 如果指定了年份範圍，過濾數據
+  let dataToSample = historicalData;
+  if (yearRange) {
+    dataToSample = historicalData.filter(
+      (data) => data.year >= yearRange.startYear && data.year <= yearRange.endYear
+    );
+
+    // 如果過濾後沒有數據，使用全部數據
+    if (dataToSample.length === 0) {
+      dataToSample = historicalData;
+    }
+  }
+
   // 從歷史數據中隨機選擇一年
-  const randomYear = historicalData[Math.floor(Math.random() * historicalData.length)];
+  const randomYear = dataToSample[Math.floor(Math.random() * dataToSample.length)];
 
   // 計算組合回報率
   const portfolioReturn =
